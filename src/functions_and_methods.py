@@ -5,7 +5,7 @@ import numpy as np
 from datetime import date
 from tqdm.notebook import tqdm
 from workalendar.europe import Russia
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_absolute_percentage_error
 from sklearn.model_selection import KFold
 from src.helpers import get_project_dir
 
@@ -31,14 +31,32 @@ def custom_score(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred)/y_pred)
 
 
-def eval(model, df, df_v, feats, target):
-    model.fit(df[feats], df[target])
+def eval(model, df, df_v, df_t, feats, target, is_fitted=False):
+    if not is_fitted:
+        model.fit(df[feats], df[target])
     pred = model.predict(df[feats])
-    print(f"train R2 = {r2_score(y_true=df[target], y_pred=pred)}")
-    print(f"train custom = {custom_score(y_true=df[target], y_pred=pred)}")
+    scores = {}
+    scores['train R2'] = r2_score(y_true=df[target], y_pred=pred)
+    scores['train custom'] = custom_score(y_true=df[target], y_pred=pred)
+    scores['train MAPE'] = mean_absolute_percentage_error(y_true=df[target], y_pred=pred)
+    print(f"train R2 = {scores['train R2']}")
+    print(f"train custom = {scores['train custom']}")
+    print(f"train MAPE = {scores['train MAPE']}")
     pred = model.predict(df_v[feats])
-    print(f"val R2 = {r2_score(y_true=df_v[target], y_pred=pred)}")
-    print(f"val custom = {custom_score(y_true=df_v[target], y_pred=pred)}")
+    scores['val R2'] = r2_score(y_true=df_v[target], y_pred=pred)
+    scores['val custom'] = custom_score(y_true=df_v[target], y_pred=pred)
+    scores['val MAPE'] = mean_absolute_percentage_error(y_true=df_v[target], y_pred=pred)
+    print(f"val R2 = {scores['val R2']}")
+    print(f"val custom = {scores['val custom']}")
+    print(f"val MAPE = {scores['val MAPE']}")
+    pred = model.predict(df_t[feats])
+    scores['test R2'] = r2_score(y_true=df_t[target], y_pred=pred)
+    scores['test custom'] = custom_score(y_true=df_t[target], y_pred=pred)
+    scores['test MAPE'] = mean_absolute_percentage_error(y_true=df_t[target], y_pred=pred)
+    print(f"test R2 = {scores['test R2']}")
+    print(f"test custom = {scores['test custom']}")
+    print(f"test MAPE = {scores['test MAPE']}")
+    return scores
 
 
 def cross_validate_(model, params, X, y, cv, scoring, random_state=42):
@@ -180,7 +198,7 @@ class Selector:
         return feat_to_exclude, best_score
 
 
-def grid_search(df, df_v, feats, target, model, params, scorer):
+def grid_search(df, df_v, feats, target, model, params, scorer, default_params={}):
     combinations = [dict(zip(params.keys(), v)) for v in itertools.product(*params.values())]
     iterator = tqdm(combinations, total=len(combinations))
     iterator.set_postfix({'best_score': None, 'best_set': None})
@@ -188,7 +206,7 @@ def grid_search(df, df_v, feats, target, model, params, scorer):
     best_set = None
     for it, comb in enumerate(iterator):
         print(f'Iteration: {it}, Set: {comb}', end=' ')
-        model_ = model(**comb)
+        model_ = model(**comb, **default_params)
         model_.fit(df[feats], df[target])
         pred = model_.predict(df_v[feats])
         score = scorer(y_true=df_v[target], y_pred=pred)
@@ -196,7 +214,7 @@ def grid_search(df, df_v, feats, target, model, params, scorer):
         if it == 0:
             best_score = score
             best_set = comb.copy()
-        elif score < best_score and score > 0:
+        elif score < best_score:
             best_score = score
             best_set = comb.copy()
         iterator.set_postfix({'best_score': best_score, 'best_set': best_set})
