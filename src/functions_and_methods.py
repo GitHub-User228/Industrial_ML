@@ -5,7 +5,7 @@ import numpy as np
 from datetime import date
 from tqdm.notebook import tqdm
 from workalendar.europe import Russia
-from sklearn.metrics import r2_score, mean_absolute_percentage_error
+from sklearn.metrics import r2_score, mean_absolute_percentage_error, mean_absolute_error
 from sklearn.model_selection import KFold
 from src.helpers import get_project_dir
 
@@ -39,23 +39,29 @@ def eval(model, df, df_v, df_t, feats, target, is_fitted=False):
     scores['train R2'] = r2_score(y_true=df[target], y_pred=pred)
     scores['train custom'] = custom_score(y_true=df[target], y_pred=pred)
     scores['train MAPE'] = mean_absolute_percentage_error(y_true=df[target], y_pred=pred)
+    scores['train MAE'] = mean_absolute_error(y_true=df[target], y_pred=pred)
     print(f"train R2 = {scores['train R2']}")
     print(f"train custom = {scores['train custom']}")
     print(f"train MAPE = {scores['train MAPE']}")
+    print(f"train MAE = {scores['train MAE']}")
     pred = model.predict(df_v[feats])
     scores['val R2'] = r2_score(y_true=df_v[target], y_pred=pred)
     scores['val custom'] = custom_score(y_true=df_v[target], y_pred=pred)
     scores['val MAPE'] = mean_absolute_percentage_error(y_true=df_v[target], y_pred=pred)
+    scores['val MAE'] = mean_absolute_error(y_true=df_v[target], y_pred=pred)
     print(f"val R2 = {scores['val R2']}")
     print(f"val custom = {scores['val custom']}")
     print(f"val MAPE = {scores['val MAPE']}")
+    print(f"val MAE = {scores['val MAE']}")
     pred = model.predict(df_t[feats])
     scores['test R2'] = r2_score(y_true=df_t[target], y_pred=pred)
     scores['test custom'] = custom_score(y_true=df_t[target], y_pred=pred)
     scores['test MAPE'] = mean_absolute_percentage_error(y_true=df_t[target], y_pred=pred)
+    scores['test MAE'] = mean_absolute_error(y_true=df_t[target], y_pred=pred)
     print(f"test R2 = {scores['test R2']}")
     print(f"test custom = {scores['test custom']}")
     print(f"test MAPE = {scores['test MAPE']}")
+    print(f"test MAE = {scores['test MAE']}")
     return scores
 
 
